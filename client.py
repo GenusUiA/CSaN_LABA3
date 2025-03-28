@@ -3,14 +3,6 @@ from _thread import *
 
 udp_port = 17
 
-def check_port_available(ip,port):
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        try: 
-            sock.bind((ip, port))
-            return True
-        except OSError:
-            return False
-        
 def receive_messages(client_socket):
     while True:
         try:
@@ -30,14 +22,18 @@ def receive_udp_notes(udp_socket):
         except:
             break
 
-def client_start(ip, server_port, tcp_port, client_ip, name):
+def client_start(ip, server_port, tcp_port, client_ip):
     client_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    while not check_port_available(client_ip, tcp_port):
-        print("порт уже занят, попробуйте другой")
-        tcp_port = int(input("Введите другой порт: "))
+    while True:
+        try:
+            client_sock.bind((client_ip, tcp_port))
+            break
+        except:
+            print("порт уже занят, попробуйте другой")
+            tcp_port = int(input("Введите другой порт: "))
     try:
         client_sock.connect((ip, server_port))
-        print(f"{name} подключился к серверу {ip}")
+        print(f"{client_ip} подключился к серверу {ip}")
         start_new_thread(receive_messages, (client_sock, ))
         
         udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -53,12 +49,15 @@ def client_start(ip, server_port, tcp_port, client_ip, name):
         print(f"ошибка: {e}")
         print("Соединение потеряно")
     finally:
+        try:
+            client_sock.shutdown(socket.SHUT_RDWR)
+        except:
+            pass
         client_sock.close()
 
 if __name__ == '__main__':
-    name = input("Введите никнейм: ")
     ip = input("Введите ip сервера: ")
     tcp_port = int(input("Введите tcp порт клиента: "))
     server_port = int(input("Введите порт сервера: "))
     client_ip = input("Введите ip клиента: ")
-    client_start(ip, server_port, tcp_port, client_ip, name)
+    client_start(ip, server_port, tcp_port, client_ip)
